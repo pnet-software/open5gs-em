@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "open5gs-em.fullname" . }}
+  labels:
+    {{- include "open5gs-em.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "open5gs-em.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+    - name: management
+      port: {{ .Values.service.managementPort }}
+      targetPort: management
+      protocol: TCP

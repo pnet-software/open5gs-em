@@ -1,0 +1,97 @@
+spring:
+  application:
+    name: open5gs-em
+  lifecycle:
+    timeout-per-shutdown-phase: ${SHUTDOWN_TIMEOUT:20s}
+  jackson:
+    default-property-inclusion: non_null
+  mongodb:
+    # The Open5GS database: its subscribers, plus this app's collections (cells, qos_sessions) and
+    # open5gs-swap-events' swap_events
+    uri: ${MONGODB_URI:mongodb://localhost:27017/open5gs}
+
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+  # The Open5GS PCF posts session notifications over cleartext HTTP/2 with prior knowledge
+  http2:
+    enabled: true
+  # The specs under static/openapi/
+  mime-mappings:
+    yaml: application/yaml
+
+# The quality profiles TEP offers come from the deployment's configuration, under tep.quality-profiles, each
+# in the shape of the TEP quality profile body (see application-local.yaml). The API only reads them. The PCF's
+# qos_profiles must list each profile name used for AS sessions.
+#
+# The home PLMNs, under tep.home-plmns, are a list of MCC + MNC (e.g. - "00101"): a UE served by any other PLMN
+# is roaming. Without them, the subscriber status has no roaming.
+
+em:
+  # One log line per request (method, path, status, route, duration, exception); actuator, Swagger UI and the
+  # spec files are left out (em.access-log.exclude)
+  access-log:
+    enabled: ${ACCESS_LOG_ENABLED:true}
+
+open5gs:
+  pcf:
+    base-url: ${PCF_BASE_URL:http://localhost:7777/npcf-policyauthorization/v1}
+    # This app's /notifications as the PCF reaches it
+    notification-url: ${PCF_NOTIFICATION_URL:http://localhost:8080/notifications}
+  metrics:
+    amf-url: ${AMF_METRICS_URL:http://localhost:9090/ue-info}
+    smf-url: ${SMF_METRICS_URL:http://localhost:9091/pdu-info}
+    connect-timeout: ${METRICS_CONNECT_TIMEOUT:2s}
+    read-timeout: ${METRICS_READ_TIMEOUT:5s}
+
+# Actuator lives on its own port so it is never exposed through the public ingress
+management:
+  server:
+    port: ${MANAGEMENT_PORT:8081}
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+      group:
+        # Without Mongo nothing can be answered; take the pod out of the Service until it's back
+        readiness:
+          include: readinessState,mongo
+  info:
+    java:
+      enabled: true
+
+logging:
+  structured:
+    format:
+      console: ${LOG_FORMAT:ecs}
+  pattern:
+    # The request's x-correlator on every plain-text line; ECS lines carry it as the correlator field
+    correlation: "[%X{correlator:-}] "
+  level:
+    # Unmatched paths are in the access log already, masked; this logger would print them raw
+    org.springframework.web.servlet.PageNotFound: error
+    # The generated models put @Valid on a list or map as well as on its element type, and Hibernate Validator
+    # warns (HV000271) that the first is deprecated. The second already does the validation.
+    org.hibernate.validator.internal.metadata.aggregated.CascadingMetaDataBuilder: ERROR
+
+springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_ENABLED:true}
+  # Swagger UI shows the TEP spec itself (static/openapi/, with the 3GPP files it references),
+  # not the docs springdoc derives from the controllers
+  swagger-ui:
+    enabled: ${SPRINGDOC_ENABLED:true}
+    path: /
+    urls:
+      - name: TEP API
+        url: /openapi/tep-api.openapi.yaml
+      - name: 3GPP AsSessionWithQoS (TS 29.122)
+        url: /openapi/TS29122_AsSessionWithQoS_Bundle.openapi.yaml
+    urls-primary-name: TEP API
+    # list the endpoints within each tag alphabetically (by path, then method)
+    operations-sorter: alpha

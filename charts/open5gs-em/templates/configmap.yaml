@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "open5gs-em.fullname" . }}
+  labels:
+    {{- include "open5gs-em.labels" . | nindent 4 }}
+data:
+  SERVER_PORT: "8080"
+  MANAGEMENT_PORT: "8081"
+  PCF_BASE_URL: {{ include "open5gs-em.pcfBaseUrl" . | quote }}
+  PCF_NOTIFICATION_URL: {{ include "open5gs-em.pcfNotificationUrl" . | quote }}
+  AMF_METRICS_URL: {{ include "open5gs-em.amfMetricsUrl" . | quote }}
+  SMF_METRICS_URL: {{ include "open5gs-em.smfMetricsUrl" . | quote }}
+  METRICS_CONNECT_TIMEOUT: {{ .Values.config.metricsConnectTimeout | quote }}
+  METRICS_READ_TIMEOUT: {{ .Values.config.metricsReadTimeout | quote }}
+  LOG_FORMAT: {{ .Values.config.logFormat | quote }}
+  ACCESS_LOG_ENABLED: {{ .Values.config.accessLogEnabled | quote }}
+  SPRINGDOC_ENABLED: {{ .Values.config.springdocEnabled | quote }}
+  SHUTDOWN_TIMEOUT: {{ .Values.config.shutdownTimeout | quote }}
+  JAVA_TOOL_OPTIONS: {{ .Values.config.javaToolOptions | quote }}
+  # The quality profiles, from their own ConfigMap
+  SPRING_CONFIG_IMPORT: "file:/config/quality-profiles.yaml"
+  {{- /* Any further setting, as ENV_NAME: value */}}
+  {{- range $key, $value := .Values.config.extra }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}

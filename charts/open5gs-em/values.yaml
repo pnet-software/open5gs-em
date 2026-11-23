@@ -1,0 +1,149 @@
+replicaCount: 2
+
+image:
+  repository: docker.io/pnetrepo/open5gs-em
+  # Defaults to the chart appVersion (the git tag the chart was released from)
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  # TEP (/tep-api) and the PCF's notification callback (/notifications)
+  port: 8080
+  # Actuator (health, info, prometheus); never routed through the ingress
+  managementPort: 8081
+
+# TEP is a trusted internal API with no authentication (see the spec's trust model): only expose it
+# behind network-level access control. Only /tep-api is routed; /notifications stays cluster-internal.
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: tep.example.local
+      paths:
+        - path: /tep-api
+          pathType: Prefix
+  tls: []
+
+# The Open5GS database: subscribers, plus this app's own collections
+mongodb:
+  # A Secret with a MONGODB_URI key. When empty, the chart creates one from mongodb.uri
+  existingSecret: ""
+  uri: mongodb://open5gs-mongodb:27017/open5gs
+
+# Application settings, rendered into a ConfigMap and passed as environment variables. The URLs here and
+# mongodb.uri may be templates, e.g. "http://{{ .Release.Name }}-pcf-sbi:7777/..." (see the open5gs-em-stack chart).
+config:
+  # Npcf_PolicyAuthorization API root of the Open5GS PCF
+  pcfBaseUrl: http://open5gs-pcf:7777/npcf-policyauthorization/v1
+  # This app's /notifications as the PCF reaches it. Empty: this release's Service (a PCF in the cluster)
+  pcfNotificationUrl: ""
+  # The Open5GS AMF and SMF metrics endpoints with the UE state
+  amfMetricsUrl: http://open5gs-amf-metrics:9090/ue-info
+  smfMetricsUrl: http://open5gs-smf-metrics:9090/pdu-info
+  metricsConnectTimeout: 2s
+  metricsReadTimeout: 5s
+  logFormat: ecs
+  # One log line per API request; false turns it off
+  accessLogEnabled: true
+  springdocEnabled: true
+  shutdownTimeout: 20s
+  javaToolOptions: "-XX:MaxRAMPercentage=75"
+  # Further settings, added to the ConfigMap as ENV_NAME: value
+  extra: {}
+
+# The quality profiles TEP offers, each in the shape of the TEP quality profile body, with its fiveQi. The API only
+# reads them; changing them rolls the pods, and an invalid one stops them from starting. The PCF's pcf.yaml
+# qos_profiles must map each name to its fiveQi, and an AS session gives the UE's PDU session a PCC rule for it.
+# Empty: global.qualityProfiles, which the open5gs-em-stack chart also renders the PCF's qos_profiles from.
+qualityProfiles: []
+#  - name: QOS_M
+#    fiveQi: 2
+#    description: GBR flow with 5QI 2, suitable for video (live streaming)
+#    status: ACTIVE
+#    maxUpstreamRate: { value: 40, unit: Mbps }
+#    maxDownstreamRate: { value: 40, unit: Mbps }
+#    targetMinDownstreamRate: { value: 10, unit: Mbps }
+#    priority: 40
+#    preemptionCapability: NOT_PREEMPT
+#    preemptionVulnerability: PREEMPTABLE
+
+# The home PLMNs, each as MCC + MNC with the MNC at its own length ("00101", or "310410" for a 3-digit MNC). A UE
+# served by any other PLMN is roaming: the subscriber status's roaming, which camara-tep's roaming service answers
+# from. List the home PLMN and any others to treat as home. Empty: the status has no roaming.
+homePlmns: []
+#  - "00101"
+
+# Extra environment for the container, e.g. secrets
+extraEnv: []
+extraEnvFrom: []
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    memory: 768Mi
+
+# Must exceed config.shutdownTimeout plus the preStop delay
+terminationGracePeriodSeconds: 35
+preStopSleepSeconds: 5
+
+probes:
+  startup:
+    periodSeconds: 3
+    failureThreshold: 40
+  liveness:
+    periodSeconds: 10
+    failureThreshold: 3
+  readiness:
+    periodSeconds: 5
+    failureThreshold: 3
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  labels: {}
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

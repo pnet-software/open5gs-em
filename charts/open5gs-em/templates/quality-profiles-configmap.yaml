@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "open5gs-em.fullname" . }}-quality-profiles
+  labels:
+    {{- include "open5gs-em.labels" . | nindent 4 }}
+data:
+  # Mounted at /config and imported by the app (SPRING_CONFIG_IMPORT); see qualityProfiles and homePlmns in
+  # values.yaml
+  quality-profiles.yaml: |
+    tep:
+      quality-profiles:
+        {{- include "open5gs-em.qualityProfiles" . | nindent 8 }}
+      home-plmns: {{- if not .Values.homePlmns }} []{{- end }}
+        {{- range .Values.homePlmns }}
+        - {{ toString . | quote }}
+        {{- end }}

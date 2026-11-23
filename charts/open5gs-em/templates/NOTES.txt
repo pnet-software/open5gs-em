@@ -1,0 +1,21 @@
+{{ include "open5gs-em.fullname" . }} {{ .Chart.AppVersion }} is deployed.
+
+Image:   {{ include "open5gs-em.image" . }}
+PCF:     {{ include "open5gs-em.pcfBaseUrl" . }} (notifies {{ include "open5gs-em.pcfNotificationUrl" . }})
+Metrics: {{ include "open5gs-em.amfMetricsUrl" . }}, {{ include "open5gs-em.smfMetricsUrl" . }}
+MongoDB: from Secret {{ include "open5gs-em.mongodbSecretName" . }} (MONGODB_URI)
+
+TEP has no authentication and returns subscriber credentials: keep it behind network-level access control.
+
+API (in-cluster), the base URL for TEP clients such as camara-tep (TEP_BASE_URL):
+  http://{{ include "open5gs-em.fullname" . }}.{{ .Release.Namespace }}:{{ .Values.service.port }}/tep-api/v1
+  e.g. GET  .../tep-api/v1/subscriber
+       POST .../tep-api/v1/3gpp-as-session-with-qos/v1/<scsAsId>/subscriptions
+
+Swagger UI (the TEP spec):
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "open5gs-em.fullname" . }} {{ .Values.service.port }}
+  open http://localhost:{{ .Values.service.port }}/
+
+Health and metrics (management port, not exposed by the ingress):
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "open5gs-em.fullname" . }} {{ .Values.service.managementPort }}
+  curl http://localhost:{{ .Values.service.managementPort }}/actuator/health

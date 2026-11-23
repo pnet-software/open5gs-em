@@ -1,0 +1,24 @@
+# The integration tests' quality profiles and home PLMN (profile "it", see IntegrationTest)
+tep:
+  # The metrics fixtures' UE is in PLMN 00101
+  home-plmns:
+    - "00101"
+  quality-profiles:
+    - name: QOS_S
+      five-qi: 67
+      description: GBR flow with 5QI 67
+      status: ACTIVE
+      max-upstream-rate: { value: 5, unit: Mbps }
+      max-downstream-rate: { value: 10, unit: Mbps }
+      target-min-downstream-rate: { value: 2, unit: Mbps }
+      max-duration: { value: 1, unit: HOURS }
+      priority: 20
+      packet-error-loss-rate: 2
+      preemption-vulnerability: NOT_PREEMPTABLE
+    - name: QOS_D
+      five-qi: 9
+      status: DEPRECATED
+    - name: QOS_M
+      five-qi: 2
+      status: ACTIVE
+      max-downstream-rate: { value: 20, unit: Mbps }

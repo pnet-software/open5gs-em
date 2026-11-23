@@ -1,0 +1,13 @@
+apiVersion: v2
+# <name>-chart: helm push names the Docker Hub repository after the chart, so the chart doesn't land in the image's
+# repository (pnetrepo/open5gs-em). Kubernetes resources drop the suffix (open5gs-em.name).
+name: open5gs-em-chart
+description: TEP API server for Open5GS, including the 3GPP AsSessionWithQoS API backed by the Open5GS PCF
+type: application
+# Overwritten by CI at package time: version = git tag without "v", appVersion = git tag
+version: 1.0.0
+appVersion: "v1.0.0"
+keywords:
+  - tep
+  - open5gs
+  - as-session-with-qos

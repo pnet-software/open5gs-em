@@ -1,0 +1,113 @@
+# Developer conveniences; activate with SPRING_PROFILES_ACTIVE=local
+# Defaults for a single-host Open5GS install (each NF on its own 127.0.0.x)
+spring:
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://127.0.0.1:27017/open5gs?authSource=admin}
+
+open5gs:
+  pcf:
+    base-url: ${PCF_BASE_URL:http://127.0.0.13:7777/npcf-policyauthorization/v1}
+    notification-url: ${PCF_NOTIFICATION_URL:http://127.0.0.1:8080/notifications}
+  metrics:
+    amf-url: ${AMF_METRICS_URL:http://127.0.0.5:9090/ue-info}
+    smf-url: ${SMF_METRICS_URL:http://127.0.0.4:9090/pdu-info}
+
+# Sample quality profiles, each named after its 5QI. The PCF's qos_profiles must map each name to its fiveQi
+tep:
+  # Open5GS's sample PLMN: a UE served by any other is roaming
+  home-plmns:
+    - "00101"
+  quality-profiles:
+    - name: QOS_1
+      fiveQi: 1
+      description: GBR flow with 5QI 1
+      status: ACTIVE
+      maxUpstreamRate: { value: 40, unit: Mbps }
+      maxDownstreamRate: { value: 40, unit: Mbps }
+      targetMinDownstreamRate: { value: 10, unit: Mbps }
+      priority: 40
+      preemptionCapability: NOT_PREEMPT
+      preemptionVulnerability: PREEMPTABLE
+    - name: QOS_2
+      fiveQi: 2
+      description: GBR flow with 5QI 2
+      status: ACTIVE
+      maxUpstreamRate: { value: 40, unit: Mbps }
+      maxDownstreamRate: { value: 40, unit: Mbps }
+      targetMinDownstreamRate: { value: 10, unit: Mbps }
+      priority: 40
+      preemptionCapability: NOT_PREEMPT
+      preemptionVulnerability: PREEMPTABLE
+    - name: QOS_3
+      fiveQi: 3
+      description: GBR flow with 5QI 3
+      status: ACTIVE
+      maxUpstreamRate: { value: 40, unit: Mbps }
+      maxDownstreamRate: { value: 40, unit: Mbps }
+      targetMinDownstreamRate: { value: 10, unit: Mbps }
+      priority: 40
+      preemptionCapability: NOT_PREEMPT
+      preemptionVulnerability: PREEMPTABLE
+    - name: QOS_4
+      fiveQi: 4
+      description: GBR flow with 5QI 4
+      status: ACTIVE
+      maxUpstreamRate: { value: 40, unit: Mbps }
+      maxDownstreamRate: { value: 40, unit: Mbps }
+      targetMinDownstreamRate: { value: 10, unit: Mbps }
+      priority: 40
+      preemptionCapability: NOT_PREEMPT
+      preemptionVulnerability: PREEMPTABLE
+    - name: QOS_5
+      fiveQi: 5
+      description: Non-GBR flow with 5QI 5
+      status: ACTIVE
+      maxUpstreamRate: { value: 40, unit: Mbps }
+      maxDownstreamRate: { value: 40, unit: Mbps }
+      priority: 40
+      preemptionCapability: NOT_PREEMPT
+      preemptionVulnerability: PREEMPTABLE
+    - name: QOS_6
+      fiveQi: 6
+      description: Non-GBR flow with 5QI 6
+      status: ACTIVE
+      maxUpstreamRate: { value: 40, unit: Mbps }
+      maxDownstreamRate: { value: 40, unit: Mbps }
+      priority: 40
+      preemptionCapability: NOT_PREEMPT
+      preemptionVulnerability: PREEMPTABLE
+    - name: QOS_7
+      fiveQi: 7
+      description: Non-GBR flow with 5QI 7
+      status: ACTIVE
+      maxUpstreamRate: { value: 40, unit: Mbps }
+      maxDownstreamRate: { value: 40, unit: Mbps }
+      priority: 40
+      preemptionCapability: NOT_PREEMPT
+      preemptionVulnerability: PREEMPTABLE
+    - name: QOS_8
+      fiveQi: 8
+      description: Non-GBR flow with 5QI 8
+      status: ACTIVE
+      maxUpstreamRate: { value: 40, unit: Mbps }
+      maxDownstreamRate: { value: 40, unit: Mbps }
+      priority: 40
+      preemptionCapability: NOT_PREEMPT
+      preemptionVulnerability: PREEMPTABLE
+    - name: QOS_69
+      fiveQi: 69
+      description: Non-GBR flow with 5QI 69
+      status: ACTIVE
+      maxUpstreamRate: { value: 40, unit: Mbps }
+      maxDownstreamRate: { value: 40, unit: Mbps }
+      priority: 40
+      preemptionCapability: NOT_PREEMPT
+      preemptionVulnerability: PREEMPTABLE
+
+logging:
+  structured:
+    format:
+      console: ""
+  level:
+    gr.pnet.em: DEBUG
+    org.springframework.web.client: DEBUG

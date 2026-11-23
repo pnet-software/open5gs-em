@@ -1,0 +1,15 @@
+{
+    "supportedFeatures": "12",
+    "notificationDestination": "http://scs-as.example.com:30101/callback/v0",
+    "flowInfo": [
+        {
+            "flowId": 0,
+            "flowDescriptions": [
+                "permit in ip from 10.45.0.13 any to 0.0.0.0/0 any",
+                "permit out ip from 0.0.0.0/0 any to 10.45.0.13 any"
+            ]
+        }
+    ],
+    "qosReference": "QOS_1",
+    "ueIpv4Addr": "10.45.0.13"
+}

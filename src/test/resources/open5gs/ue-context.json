@@ -1,0 +1,82 @@
+    {
+        "supi": "imsi-001010000000001",
+        "suci": "suci-0-001-01-0000-0-0-0000000001",
+        "pei": "imeisv-4370816125816151",
+        "cm_state": "connected",
+        "mm_state": "registered",
+        "guti": "00101-020040-CC00006C5",
+        "m_tmsi": 3221227205,
+        "gnb": {
+            "ostream_id": 7,
+            "amf_ue_ngap_id": 7,
+            "ran_ue_ngap_id": 7,
+            "gnb_id": 0,
+            "cell_id": 256
+        },
+        "location": {
+            "timestamp": 1761288616546307,
+            "nr_tai": {
+                "plmn": "00101",
+                "tac_hex": "000064",
+                "tac": 100
+            },
+            "nr_cgi": {
+                "plmn": "00101",
+                "nci": 256,
+                "gnb_id": 16,
+                "cell_id": 0
+            },
+            "last_visited_plmn_id": "000000"
+        },
+        "msisdn": [
+            "+306999999999"
+        ],
+        "security": {
+            "valid": 1,
+            "enc": "nea0",
+            "int": "nia2"
+        },
+        "ambr": {
+            "downlink": 1000000000,
+            "uplink": 1000000000
+        },
+        "pdu_sessions": [
+            {
+                "psi": 1,
+                "dnn": "internet",
+                "snssai": {
+                    "sst": 1,
+                    "sd": "ffffff"
+                },
+                "lbo_roaming_allowed": false,
+                "resource_status": 0,
+                "n1_released": false,
+                "n2_released": false
+            }
+        ],
+        "pdu_sessions_count": 1,
+        "requested_slices": [
+            {
+                "sst": 1,
+                "sd": "ffffff"
+            }
+        ],
+        "allowed_slices": [
+            {
+                "sst": 1,
+                "sd": "ffffff"
+            }
+        ],
+        "requested_slices_count": 1,
+        "allowed_slices_count": 1,
+        "am_policy_features": 4,
+        "am_policy_features_info": {
+            "hex": "0x0000000000000004",
+            "bits": [
+                2
+            ],
+            "labels": [
+                "QoS Policy Control"
+            ]
+        }
+    }

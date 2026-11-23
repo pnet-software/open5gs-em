@@ -1,0 +1,38 @@
+# Turns every optional template on so `helm lint` / `helm template` cover them in CI
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: tep.ci.local
+      paths:
+        - path: /tep-api
+          pathType: Prefix
+  tls:
+    - hosts:
+        - tep.ci.local
+      secretName: tep-tls
+autoscaling:
+  enabled: true
+serviceMonitor:
+  enabled: true
+imagePullSecrets:
+  - name: registry-pull
+extraEnv:
+  - name: EXAMPLE
+    value: "1"
+mongodb:
+  existingSecret: open5gs-mongodb-uri
+config:
+  pcfNotificationUrl: http://em.example.com:30808/notifications
+  extra:
+    EXAMPLE_SETTING: "1"
+qualityProfiles:
+  - name: QOS_M
+    fiveQi: 2
+    description: GBR flow with 5QI 2, suitable for video (live streaming)
+    status: ACTIVE
+    maxUpstreamRate: { value: 40, unit: Mbps }
+    maxDownstreamRate: { value: 40, unit: Mbps }
+    targetMinDownstreamRate: { value: 10, unit: Mbps }
+    priority: 40
+    preemptionVulnerability: PREEMPTABLE
