@@ -68,11 +68,12 @@ tep:
       max-downstream-rate: { value: 40, unit: Mbps }
       max-upstream-rate: { value: 40, unit: Mbps }
       target-min-downstream-rate: { value: 10, unit: Mbps }
+      target-min-upstream-rate: { value: 10, unit: Mbps }
       priority: 40
       preemption-vulnerability: PREEMPTABLE
 ```
 
-Each needs its `five-qi`, the 5QI the PCF's `qos_profiles` maps its name to. They are checked at startup against the TEP body's constraints, and an invalid profile, one without a `five-qi` or a repeated name stops the app from starting. A change takes a restart, as the PCF's does. `POST /quality-profile` and `PUT` and `DELETE /quality-profile/{name}` aren't in the spec and answer 405.
+Each needs its `five-qi`, the 5QI the PCF's `qos_profiles` maps its name to. They are checked at startup against the TEP body's constraints, and an invalid profile, one without a `five-qi` or a repeated name stops the app from starting. So does a profile with a GBR 5QI (see "Non-GBR profiles") that lacks any of its four flow bit rates (`maxDownstreamRate`, `maxUpstreamRate`, `targetMinDownstreamRate`, `targetMinUpstreamRate`), or whose minimum is above its maximum: a GBR QoS flow needs all four (TS 24.501). Without a minimum, the Open5GS PCF would guarantee the whole maximum, and without a maximum the SMF would make it 4 Tbps. A change takes a restart, as the PCF's does. `POST /quality-profile` and `PUT` and `DELETE /quality-profile/{name}` aren't in the spec and answer 405.
 
 An AS session names a profile in its `qosReference`. TEP passes that name on to the Open5GS PCF as the media component's `qosReference`, as a 3GPP NEF does, and the PCF works out the QoS from it:
 
@@ -83,18 +84,22 @@ An AS session names a profile in its `qosReference`. TEP passes that name on to 
   - The default QoS flow is untouched: Open5GS builds it from the session's own `qos` (5QI and ARP) and AMBR, not from a PCC rule, and TEP never changes those.
   - An Open5GS PDU session has at most 4 QoS flows, the default one included, and every app session takes one of its own, so a UE has at most 3 QoS sessions at a time. TEP counts the flows in the SMF's `pdu-info` before it asks the PCF: a create, or a PATCH to a profile with another 5QI (which briefly takes a new app session), on a PDU session that has 4 is a 409. A PATCH that keeps the 5QI changes the flow in place and needs no room.
   - Rarely, a rule TEP just added for a create still in flight can be removed by a concurrent create on a session already full of rules; that create then gets the PCF's 403.
-- **Bit rates and ARP** come from the profile's own fields, as below. A rate the profile doesn't give, the PCF takes from the PCC rule.
+- **Bit rates and ARP** come from the profile's own fields, as below. A rate the profile doesn't give, the PCF takes from the PCC rule. Bit rates go for a **GBR 5QI only**: see "Non-GBR profiles" below.
 
 | Profile | Media component | What the PCF does with it |
 |---|---|---|
 | `name` | `qosReference` | Picks the 5QI from `qos_profiles` |
 | `maxDownstreamRate`, `maxUpstreamRate` | `marBwDl`, `marBwUl` | MBR. TEP's rate units are the 3GPP ones, so `{"value": 5, "unit": "Mbps"}` is sent as `"5 Mbps"`. |
-| `targetMinDownstreamRate`, `targetMinUpstreamRate` | `mirBwDl`, `mirBwUl` | GBR. Without them, the GBR is the MBR. |
-| `priority` | `resPrio` | ARP priority level, through the PCF's `reservation_priorities` config. 1–100 is banded into `PRIO_16` (highest) to `PRIO_1`: 1–7 is `PRIO_16`, 8–13 `PRIO_15`, …, 95–100 `PRIO_1`. A `resPrio` missing from that config leaves the PCC rule's ARP priority as it is. |
-| `preemptionCapability` | `preemptCap` | ARP pre-emption capability: `MAY_PREEMPT` or `NOT_PREEMPT` |
-| `preemptionVulnerability` | `preemptVuln` | ARP pre-emption vulnerability: `PREEMPTABLE` or `NOT_PREEMPTABLE` |
+| `targetMinDownstreamRate`, `targetMinUpstreamRate` | `mirBwDl`, `mirBwUl` | GBR. Required for a GBR profile: without them, the PCF would make the GBR the MBR. |
+| `priority` | `resPrio` | ARP priority level, through the PCF's `reservation_priorities` config. 1–100 is banded into `PRIO_16` (highest) to `PRIO_1`: 1–7 is `PRIO_16`, 8–13 `PRIO_15`, …, 95–100 `PRIO_1`. A `resPrio` missing from that config leaves the PCC rule's ARP priority as it is. Needs a PCF with AF-requested ARP (see below). |
+| `preemptionCapability` | `preemptCap` | ARP pre-emption capability: `MAY_PREEMPT` or `NOT_PREEMPT`. Needs a PCF with AF-requested ARP. |
+| `preemptionVulnerability` | `preemptVuln` | ARP pre-emption vulnerability: `PREEMPTABLE` or `NOT_PREEMPTABLE`. Needs a PCF with AF-requested ARP. |
+
+**ARP and the Open5GS version.** Only a PCF with AF-requested ARP, [Open5GS PR #4793](https://github.com/open5gs/open5gs/pull/4793) (on `main` since 2026-09-18, and in the release after 2.8.0), applies a profile's `priority`, `preemptionCapability` and `preemptionVulnerability`: it maps `resPrio` through its `reservation_priorities`, which must list every band the profiles use. The Open5GS 2.8.0 PCF ignores all three, and copies the ARP of the session's PCC rule instead. So the PCC rule TEP gives a session carries a safe fallback ARP: **priority level 15 (the lowest), no pre-emption of other flows, pre-emptable**. On 2.8.0 every QoS session gets it; on a newer PCF, it's what a profile without `priority` or a pre-emption field, or with a band missing from `reservation_priorities`, falls back to.
 
 The PCF adds the rates once per flow: a `permit out` flow adds the downstream rates, a `permit in` flow the upstream ones. So a subscription whose flows have two descriptions in one direction gets twice that rate. The other profile fields (durations, packet delay budget, jitter, packet error loss rate) have nothing in the media component that Open5GS applies; the 5QI behind the `qosReference` gives the packet delay budget and error rate.
+
+**Non-GBR profiles.** Only a GBR QoS flow has flow bit rates (MFBR and GFBR, TS 23.501 clause 5.7.2.5); a non-GBR flow is limited by the Session-AMBR and UE-AMBR alone. Open5GS doesn't check the 5QI's type: the SMF sends the gNB GBR QoS flow information, and the UE GFBR and MFBR, whenever a flow has rates, and the PCF falls back to the PCC rule's rates for any the request lacks. So for a non-GBR 5QI, TEP sends no `marBwDl`, `marBwUl`, `mirBwDl` or `mirBwUl`, and the PCC rule it gives the session has no `mbr` or `gbr`: the QoS flow then carries no bit rates. A non-GBR profile may still list rates, which the QoS Profiles API shows, but they aren't enforced. The GBR 5QIs are the standardized GBR and delay-critical GBR ones (TS 23.501 table 5.7.4-1: 1–4, 65–67, 71–76, 82–90) and any listed in `tep.gbr-five-qis` (the chart's `gbrFiveQis`), for operator-specific 5QIs. A PCC rule added by hand, e.g. in the WebUI, is used as it is: give a non-GBR one no bit rates.
 
 A session's `qosReference` must name an `ACTIVE` profile; otherwise the create is a 400 with an `invalidParams` entry for `/qosReference`, and nothing reaches the PCF.
 
@@ -241,6 +246,7 @@ The integration tests (`*IT`) run the whole app against a real MongoDB, with the
 - the Mongo URI, from an existing Secret (`mongodb.existingSecret`, key `MONGODB_URI`) or from `mongodb.uri`
 - `qualityProfiles`, the quality profiles, in the shape of the TEP body (keys as in the API, e.g. `maxDownstreamRate`, and each with its `fiveQi`). The chart renders them into their own ConfigMap, mounted at `/config` and imported with `SPRING_CONFIG_IMPORT`. A change rolls the pods.
 - `homePlmns`, the home PLMNs, a list such as `["00101"]`, rendered into the same ConfigMap as `tep.home-plmns`.
+- `gbrFiveQis`, the operator-specific 5QIs that are GBR, a list such as `[130]`, rendered into the same ConfigMap as `tep.gbr-five-qis` (see "Non-GBR profiles").
 
 **Open5GS and EM together.** The open5gs-em-stack chart, in the [open5gs-em-stack](https://github.com/pnet-software/open5gs-em-stack) repository, deploys the Open5GS 5G core (no UPF, no 4G), this chart and open5gs-swap-events (which keeps `swap_events` in sync) as one release. It pulls this chart from Docker Hub at a pinned version. EM's URLs and Mongo URI point at that release, and the PCF's `qos_profiles` is rendered from the same `global.qualityProfiles` EM serves, so a profile's name and 5QI can't differ between the two.
 

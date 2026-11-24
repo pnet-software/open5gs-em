@@ -25,6 +25,7 @@ tep:
       maxUpstreamRate: { value: 40, unit: Mbps }
       maxDownstreamRate: { value: 40, unit: Mbps }
       targetMinDownstreamRate: { value: 10, unit: Mbps }
+      targetMinUpstreamRate: { value: 10, unit: Mbps }
       priority: 40
       preemptionCapability: NOT_PREEMPT
       preemptionVulnerability: PREEMPTABLE
@@ -35,6 +36,7 @@ tep:
       maxUpstreamRate: { value: 40, unit: Mbps }
       maxDownstreamRate: { value: 40, unit: Mbps }
       targetMinDownstreamRate: { value: 10, unit: Mbps }
+      targetMinUpstreamRate: { value: 10, unit: Mbps }
       priority: 40
       preemptionCapability: NOT_PREEMPT
       preemptionVulnerability: PREEMPTABLE
@@ -45,6 +47,7 @@ tep:
       maxUpstreamRate: { value: 40, unit: Mbps }
       maxDownstreamRate: { value: 40, unit: Mbps }
       targetMinDownstreamRate: { value: 10, unit: Mbps }
+      targetMinUpstreamRate: { value: 10, unit: Mbps }
       priority: 40
       preemptionCapability: NOT_PREEMPT
       preemptionVulnerability: PREEMPTABLE
@@ -55,6 +58,7 @@ tep:
       maxUpstreamRate: { value: 40, unit: Mbps }
       maxDownstreamRate: { value: 40, unit: Mbps }
       targetMinDownstreamRate: { value: 10, unit: Mbps }
+      targetMinUpstreamRate: { value: 10, unit: Mbps }
       priority: 40
       preemptionCapability: NOT_PREEMPT
       preemptionVulnerability: PREEMPTABLE
@@ -62,8 +66,6 @@ tep:
       fiveQi: 5
       description: Non-GBR flow with 5QI 5
       status: ACTIVE
-      maxUpstreamRate: { value: 40, unit: Mbps }
-      maxDownstreamRate: { value: 40, unit: Mbps }
       priority: 40
       preemptionCapability: NOT_PREEMPT
       preemptionVulnerability: PREEMPTABLE
@@ -71,8 +73,6 @@ tep:
       fiveQi: 6
       description: Non-GBR flow with 5QI 6
       status: ACTIVE
-      maxUpstreamRate: { value: 40, unit: Mbps }
-      maxDownstreamRate: { value: 40, unit: Mbps }
       priority: 40
       preemptionCapability: NOT_PREEMPT
       preemptionVulnerability: PREEMPTABLE
@@ -80,8 +80,6 @@ tep:
       fiveQi: 7
       description: Non-GBR flow with 5QI 7
       status: ACTIVE
-      maxUpstreamRate: { value: 40, unit: Mbps }
-      maxDownstreamRate: { value: 40, unit: Mbps }
       priority: 40
       preemptionCapability: NOT_PREEMPT
       preemptionVulnerability: PREEMPTABLE
@@ -89,8 +87,6 @@ tep:
       fiveQi: 8
       description: Non-GBR flow with 5QI 8
       status: ACTIVE
-      maxUpstreamRate: { value: 40, unit: Mbps }
-      maxDownstreamRate: { value: 40, unit: Mbps }
       priority: 40
       preemptionCapability: NOT_PREEMPT
       preemptionVulnerability: PREEMPTABLE
@@ -98,8 +94,6 @@ tep:
       fiveQi: 69
       description: Non-GBR flow with 5QI 69
       status: ACTIVE
-      maxUpstreamRate: { value: 40, unit: Mbps }
-      maxDownstreamRate: { value: 40, unit: Mbps }
       priority: 40
       preemptionCapability: NOT_PREEMPT
       preemptionVulnerability: PREEMPTABLE
