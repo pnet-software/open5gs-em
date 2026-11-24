@@ -34,5 +34,6 @@ qualityProfiles:
     maxUpstreamRate: { value: 40, unit: Mbps }
     maxDownstreamRate: { value: 40, unit: Mbps }
     targetMinDownstreamRate: { value: 10, unit: Mbps }
+    targetMinUpstreamRate: { value: 10, unit: Mbps }
     priority: 40
     preemptionVulnerability: PREEMPTABLE

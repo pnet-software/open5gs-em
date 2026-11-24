@@ -114,7 +114,7 @@ class QosSessionIT extends IntegrationTest {
         JsonNode component = reqData.at("/medComponents/1");
         assertThat(component.get("marBwDl").asString()).isEqualTo("10 Mbps");
         assertThat(component.get("mirBwDl").asString()).isEqualTo("2 Mbps");
-        assertThat(component.has("mirBwUl")).isFalse();
+        assertThat(component.get("mirBwUl").asString()).isEqualTo("1 Mbps");
         assertThat(component.get("resPrio").asString()).isEqualTo("PRIO_13");
         assertThat(component.get("preemptVuln").asString()).isEqualTo("NOT_PREEMPTABLE");
 

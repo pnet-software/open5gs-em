@@ -11,6 +11,7 @@ tep:
       max-upstream-rate: { value: 5, unit: Mbps }
       max-downstream-rate: { value: 10, unit: Mbps }
       target-min-downstream-rate: { value: 2, unit: Mbps }
+      target-min-upstream-rate: { value: 1, unit: Mbps }
       max-duration: { value: 1, unit: HOURS }
       priority: 20
       packet-error-loss-rate: 2
@@ -22,3 +23,6 @@ tep:
       five-qi: 2
       status: ACTIVE
       max-downstream-rate: { value: 20, unit: Mbps }
+      target-min-downstream-rate: { value: 5, unit: Mbps }
+      max-upstream-rate: { value: 20, unit: Mbps }
+      target-min-upstream-rate: { value: 5, unit: Mbps }
