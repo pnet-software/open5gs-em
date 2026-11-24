@@ -5,8 +5,8 @@ metadata:
   labels:
     {{- include "open5gs-em.labels" . | nindent 4 }}
 data:
-  # Mounted at /config and imported by the app (SPRING_CONFIG_IMPORT); see qualityProfiles and homePlmns in
-  # values.yaml
+  # Mounted at /config and imported by the app (SPRING_CONFIG_IMPORT); see qualityProfiles, homePlmns and
+  # gbrFiveQis in values.yaml
   quality-profiles.yaml: |
     tep:
       quality-profiles:
@@ -14,4 +14,8 @@ data:
       home-plmns: {{- if not .Values.homePlmns }} []{{- end }}
         {{- range .Values.homePlmns }}
         - {{ toString . | quote }}
+        {{- end }}
+      gbr-five-qis: {{- if not .Values.gbrFiveQis }} []{{- end }}
+        {{- range .Values.gbrFiveQis }}
+        - {{ int . }}
         {{- end }}

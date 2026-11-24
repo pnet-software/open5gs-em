@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import gr.pnet.em.error.InvalidRequestException;
 import gr.pnet.em.error.ResourceConflictException;
 import gr.pnet.em.error.UpstreamException;
+import gr.pnet.em.tep.qualityprofile.GbrFiveQis;
 import gr.pnet.em.tep.status.Open5gsMetricsClient;
 import gr.pnet.em.tep.status.UeSessions;
 
@@ -35,10 +36,12 @@ public class PccRuleService {
 
     private final MongoOperations mongo;
     private final Open5gsMetricsClient metrics;
+    private final GbrFiveQis gbrFiveQis;
 
-    public PccRuleService(MongoOperations mongo, Open5gsMetricsClient metrics) {
+    public PccRuleService(MongoOperations mongo, Open5gsMetricsClient metrics, GbrFiveQis gbrFiveQis) {
         this.mongo = mongo;
         this.metrics = metrics;
+        this.gbrFiveQis = gbrFiveQis;
     }
 
     /**
@@ -94,7 +97,8 @@ public class PccRuleService {
                 .and(session + ".name").is(name)
                 .and(session + ".pcc_rule.qos.index").ne(fiveQi)
                 .and(session + ".pcc_rule." + (Open5gsSubscriberMapper.MAX_PCC_RULES - 1)).exists(false));
-        Update push = new Update().push(session + ".pcc_rule", Open5gsSubscriberMapper.pccRule(fiveQi));
+        Update push = new Update().push(session + ".pcc_rule",
+                Open5gsSubscriberMapper.pccRule(fiveQi, gbrFiveQis.isGbr(fiveQi)));
         if (mongo.updateFirst(unchanged, push, SubscriberService.COLLECTION).getModifiedCount() > 0) {
             // Logged by the subscriber's TEP id: never its IMSI
             log.info("Gave session {} of subscriber {} a PCC rule for 5QI {}", name,

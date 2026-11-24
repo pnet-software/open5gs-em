@@ -111,13 +111,32 @@ class Open5gsSubscriberMapperTest {
     }
 
     @Test
-    void aPccRuleIsForItsFiveQiWithOpenRates() {
-        Document rule = Open5gsSubscriberMapper.pccRule(67);
+    void aPccRuleHasTheSafeFallbackArp() {
+        for (Document rule : List.of(Open5gsSubscriberMapper.pccRule(67, true), Open5gsSubscriberMapper.pccRule(5, false))) {
+            // The lowest priority level, no pre-emption of others, pre-emptable (Open5GS: 1 disabled, 2 enabled)
+            assertThat(rule.get("qos", Document.class).get("arp", Document.class))
+                    .containsEntry("priority_level", 15)
+                    .containsEntry("pre_emption_capability", 1)
+                    .containsEntry("pre_emption_vulnerability", 2);
+        }
+    }
+
+    @Test
+    void aNonGbrPccRuleHasNoFlowBitRates() {
+        Document qos = Open5gsSubscriberMapper.pccRule(5, false).get("qos", Document.class);
+
+        assertThat(qos.getInteger("index")).isEqualTo(5);
+        // Nothing for the PCF to fall back to, so the QoS flow carries no MFBR or GFBR
+        assertThat(qos).doesNotContainKeys("mbr", "gbr");
+    }
+
+    @Test
+    void aGbrPccRuleIsForItsFiveQiWithOpenRates() {
+        Document rule = Open5gsSubscriberMapper.pccRule(67, true);
 
         assertThat(rule.get("_id")).isInstanceOf(ObjectId.class);
         Document qos = rule.get("qos", Document.class);
         assertThat(qos.getInteger("index")).isEqualTo(67);
-        assertThat(qos.get("arp", Document.class)).containsEntry("priority_level", 2);
         // An unlimited MBR has no value
         assertThat(qos.get("mbr", Document.class).get("downlink", Document.class))
                 .doesNotContainKey("value").containsEntry("unit", 1);
@@ -139,7 +158,7 @@ class Open5gsSubscriberMapperTest {
 
     @Test
     void tellsWhetherASessionHasAPccRuleForAFiveQi() {
-        Document session = new Document("pcc_rule", List.of(Open5gsSubscriberMapper.pccRule(2),
+        Document session = new Document("pcc_rule", List.of(Open5gsSubscriberMapper.pccRule(2, true),
                 new Document("qos", new Document("index", 67L))));
 
         assertThat(Open5gsSubscriberMapper.hasPccRule(session, 2)).isTrue();

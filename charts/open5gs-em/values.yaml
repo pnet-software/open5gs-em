@@ -103,6 +103,12 @@ qualityProfiles: []
 homePlmns: []
 #  - "00101"
 
+# Operator-specific 5QIs (128-254) that are GBR. Only a GBR 5QI's QoS flow has flow bit rates (MFBR, GFBR): for any
+# other, TEP sends the PCF no bit rates and gives its PCC rule none, and the flow is limited by the Session-AMBR and
+# UE-AMBR. The standardized GBR and delay-critical GBR 5QIs (TS 23.501 table 5.7.4-1) need no listing.
+gbrFiveQis: []
+#  - 130
+
 # Extra environment for the container, e.g. secrets
 extraEnv: []
 extraEnvFrom: []

@@ -26,6 +26,9 @@ server:
 #
 # The home PLMNs, under tep.home-plmns, are a list of MCC + MNC (e.g. - "00101"): a UE served by any other PLMN
 # is roaming. Without them, the subscriber status has no roaming.
+#
+# Operator-specific 5QIs that are GBR, under tep.gbr-five-qis (e.g. - 130). The standardized GBR and delay-critical
+# GBR 5QIs need no listing. Only a GBR 5QI's QoS flow gets bit rates: for any other, the PCF is sent none.
 
 em:
   # One log line per request (method, path, status, route, duration, exception); actuator, Swagger UI and the

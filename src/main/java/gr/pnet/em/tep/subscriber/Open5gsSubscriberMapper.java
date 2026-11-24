@@ -27,6 +27,9 @@ final class Open5gsSubscriberMapper {
     private static final int GBPS = 3;
     // Open5GS session type 3: IPv4v6
     private static final int IPV4V6 = 3;
+    // Open5GS ARP pre-emption capability and vulnerability: 1 disabled, 2 enabled
+    private static final int PRE_EMPTION_DISABLED = 1;
+    private static final int PRE_EMPTION_ENABLED = 2;
     /**
      * The most PCC rules Open5GS takes in a session: past it, loading the session's data fails an assertion and
      * the function loading it (the PCF, on every PDU and AS session) aborts.
@@ -191,15 +194,26 @@ final class Open5gsSubscriberMapper {
     /**
      * The PCC rule an AS session gives a session for its 5QI. The PCF only authorizes the AS session if the rule is
      * there, and takes its rates and ARP from the AS session where it gives them.
+     *
+     * <p>Only a GBR 5QI's rule has flow bit rates. The PCF falls back to the rule's rates for any the AS session
+     * doesn't give, and the SMF signals GBR QoS flow information whenever a flow has rates, so a non-GBR rule has
+     * none: its QoS flow then carries no MFBR or GFBR, as TS 23.501 clause 5.7.2.5 has it.
+     *
+     * <p>The rule's ARP is the fallback: the lowest priority level, no pre-emption of others, pre-emptable. The
+     * Open5GS 2.8.0 PCF ignores the AS session's resPrio, preemptCap and preemptVuln, so every QoS flow there gets
+     * this ARP. A PCF with AF-requested ARP (Open5GS PR #4793) applies those over it, and keeps it for any the AS
+     * session doesn't give, or a resPrio missing from its reservation_priorities.
      */
-    static Document pccRule(int fiveQi) {
+    static Document pccRule(int fiveQi, boolean gbr) {
+        Document qos = new Document("index", fiveQi).append("arp", arp(15, PRE_EMPTION_DISABLED, PRE_EMPTION_ENABLED));
+        if (gbr) {
+            // No value: unlimited
+            qos.append("mbr", new Document("downlink", link(null, KBPS)).append("uplink", link(null, KBPS)))
+                    .append("gbr", new Document("downlink", link(1, KBPS)).append("uplink", link(1, KBPS)));
+        }
         return new Document("_id", new ObjectId())
                 .append("flow", new ArrayList<>())
-                .append("qos", new Document("index", fiveQi)
-                        .append("arp", arp(2, 2, 2))
-                        // No value: unlimited
-                        .append("mbr", new Document("downlink", link(null, KBPS)).append("uplink", link(null, KBPS)))
-                        .append("gbr", new Document("downlink", link(1, KBPS)).append("uplink", link(1, KBPS))));
+                .append("qos", qos);
     }
 
     /** Whether the session has a PCC rule for the 5QI. */

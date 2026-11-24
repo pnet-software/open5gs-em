@@ -32,6 +32,7 @@ import gr.pnet.em.generated.pcfclient.model.PreemptionVulnerabilityRm;
 import gr.pnet.em.generated.tep.model.AsSessionWithQoSSubscription;
 import gr.pnet.em.generated.tep.model.FlowInfo;
 import gr.pnet.em.generated.tep.model.TepQualityProfile;
+import gr.pnet.em.tep.qualityprofile.GbrFiveQis;
 
 /** AS sessions with QoS as Npcf_PolicyAuthorization app sessions on the Open5GS PCF. */
 @Service
@@ -43,12 +44,15 @@ public class PcfPolicyAuthorizationClient {
     private final ApplicationSessionsCollectionApi appSessions;
     private final IndividualApplicationSessionContextDocumentApi appSession;
     private final URI notificationUrl;
+    private final GbrFiveQis gbrFiveQis;
 
     public PcfPolicyAuthorizationClient(ApplicationSessionsCollectionApi appSessions,
-            IndividualApplicationSessionContextDocumentApi appSession, Open5gsProperties properties) {
+            IndividualApplicationSessionContextDocumentApi appSession, Open5gsProperties properties,
+            GbrFiveQis gbrFiveQis) {
         this.appSessions = appSessions;
         this.appSession = appSession;
         this.notificationUrl = properties.pcf().notificationUrl();
+        this.gbrFiveQis = gbrFiveQis;
     }
 
     /**
@@ -127,11 +131,13 @@ public class PcfPolicyAuthorizationClient {
         // The PCF picks the 5QI by the reference, from its qos_profiles. With a reference it ignores the media
         // type, so none is sent.
         component.setQosReference(profile.getName());
-        // MBR and GBR; without a minimum, the PCF sets the GBR to the MBR
-        component.setMarBwDl(BitRates.of(profile.getMaxDownstreamRate()));
-        component.setMarBwUl(BitRates.of(profile.getMaxUpstreamRate()));
-        component.setMirBwDl(BitRates.of(profile.getTargetMinDownstreamRate()));
-        component.setMirBwUl(BitRates.of(profile.getTargetMinUpstreamRate()));
+        // MBR and GBR, for a GBR 5QI only (see flowBitRates); without a minimum, the PCF sets the GBR to the MBR
+        if (flowBitRates(profile)) {
+            component.setMarBwDl(BitRates.of(profile.getMaxDownstreamRate()));
+            component.setMarBwUl(BitRates.of(profile.getMaxUpstreamRate()));
+            component.setMirBwDl(BitRates.of(profile.getTargetMinDownstreamRate()));
+            component.setMirBwUl(BitRates.of(profile.getTargetMinUpstreamRate()));
+        }
         // ARP; the PCF maps the reservation priority to a priority level with its reservation_priorities
         component.setResPrio(ReservationPriorities.of(profile.getPriority()));
         // TEP's pre-emption values are the 3GPP ones
@@ -154,7 +160,7 @@ public class PcfPolicyAuthorizationClient {
     }
 
     // The media component of an update: the same as on create, in the update's types
-    private static MediaComponentRm mediaComponentRm(AsSessionWithQoSSubscription subscription,
+    private MediaComponentRm mediaComponentRm(AsSessionWithQoSSubscription subscription,
             TepQualityProfile profile) {
         MediaComponentRm component = new MediaComponentRm();
         component.setMedCompN(1);
@@ -170,10 +176,12 @@ public class PcfPolicyAuthorizationClient {
         }
         component.setfStatus(FlowStatus.ENABLED);
         component.setQosReference(profile.getName());
-        component.setMarBwDl(BitRates.of(profile.getMaxDownstreamRate()));
-        component.setMarBwUl(BitRates.of(profile.getMaxUpstreamRate()));
-        component.setMirBwDl(BitRates.of(profile.getTargetMinDownstreamRate()));
-        component.setMirBwUl(BitRates.of(profile.getTargetMinUpstreamRate()));
+        if (flowBitRates(profile)) {
+            component.setMarBwDl(BitRates.of(profile.getMaxDownstreamRate()));
+            component.setMarBwUl(BitRates.of(profile.getMaxUpstreamRate()));
+            component.setMirBwDl(BitRates.of(profile.getTargetMinDownstreamRate()));
+            component.setMirBwUl(BitRates.of(profile.getTargetMinUpstreamRate()));
+        }
         component.setResPrio(ReservationPriorities.of(profile.getPriority()));
         if (profile.getPreemptionCapability() != null) {
             component.setPreemptCap(PreemptionCapabilityRm.fromValue(profile.getPreemptionCapability().getValue()));
@@ -183,6 +191,16 @@ public class PcfPolicyAuthorizationClient {
                     PreemptionVulnerabilityRm.fromValue(profile.getPreemptionVulnerability().getValue()));
         }
         return component;
+    }
+
+    /**
+     * Whether the media component carries the profile's bit rates: only for a GBR 5QI. A non-GBR QoS flow has no flow
+     * bit rates (TS 23.501 clause 5.7.2.5), and the SMF signals GBR QoS flow information for any flow that has them,
+     * so a non-GBR profile's rates aren't sent. The PCC rule TEP gives a non-GBR 5QI has none either, so the PCF has
+     * none to fall back to. Such a flow is limited by the Session-AMBR and UE-AMBR.
+     */
+    private boolean flowBitRates(TepQualityProfile profile) {
+        return gbrFiveQis.isGbr(profile.getFiveQi());
     }
 
     private static List<FlowInfo> flows(AsSessionWithQoSSubscription subscription) {

@@ -20,6 +20,7 @@ import gr.pnet.em.generated.tep.model.AsSessionWithQoSSubscription;
 import gr.pnet.em.generated.tep.model.FlowInfo;
 import gr.pnet.em.generated.tep.model.TepQualityProfile;
 import gr.pnet.em.generated.tep.model.TepQualityProfileRate;
+import gr.pnet.em.tep.qualityprofile.GbrFiveQis;
 import okhttp3.Protocol;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -49,6 +50,10 @@ class PcfPolicyAuthorizationClientTest {
     }
 
     private static PcfPolicyAuthorizationClient client(URI pcfBaseUrl) {
+        return client(pcfBaseUrl, new GbrFiveQis(null));
+    }
+
+    private static PcfPolicyAuthorizationClient client(URI pcfBaseUrl, GbrFiveQis gbrFiveQis) {
         Open5gsProperties properties = new Open5gsProperties(
                 new Open5gsProperties.Pcf(pcfBaseUrl, URI.create("http://em:8080/notifications")),
                 new Open5gsProperties.Metrics(URI.create("http://amf"), URI.create("http://smf"),
@@ -56,7 +61,7 @@ class PcfPolicyAuthorizationClientTest {
         PcfClientConfiguration configuration = new PcfClientConfiguration();
         var apiClient = configuration.pcfApiClient(properties);
         return new PcfPolicyAuthorizationClient(configuration.pcfAppSessionsApi(apiClient),
-                configuration.pcfAppSessionApi(apiClient), properties);
+                configuration.pcfAppSessionApi(apiClient), properties, gbrFiveQis);
     }
 
 
@@ -64,9 +69,11 @@ class PcfPolicyAuthorizationClientTest {
         return new TepQualityProfileRate(value, TepQualityProfileRate.UnitEnum.MBPS);
     }
 
+    // A GBR profile (5QI 67), with rates in both directions
     private static TepQualityProfile profile(TepQualityProfile.PreemptionCapabilityEnum preemptionCapability,
             TepQualityProfile.PreemptionVulnerabilityEnum preemptionVulnerability) {
         return new TepQualityProfile("QOS_S", TepQualityProfile.StatusEnum.ACTIVE)
+                .fiveQi(67)
                 .targetMinUpstreamRate(mbps(1))
                 .maxUpstreamRate(mbps(5))
                 .targetMinDownstreamRate(mbps(2))
@@ -131,6 +138,44 @@ class PcfPolicyAuthorizationClientTest {
         JsonNode subComponent = component.get("medSubComps").get("0");
         assertThat(subComponent.get("fNum").asInt()).isZero();
         assertThat(subComponent.get("fDescs")).hasSize(2);
+    }
+
+    @Test
+    void aNonGbrProfileSendsNoBitRatesOnCreateOrUpdate() throws Exception {
+        pcfServer.enqueue(created("/app-sessions/1"));
+        pcfServer.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-Type", "application/json")
+                .setBody("{}"));
+        // 5QI 5 is non-GBR: its rates describe the profile, but a non-GBR QoS flow has no flow bit rates
+        TepQualityProfile nonGbr = profile().name("QOS_5").fiveQi(5);
+
+        client.createAppSession("as1", "s1", subscription(), nonGbr);
+        client.updateAppSession("1", subscription(), nonGbr);
+
+        JsonNode created = JSON.readTree(takeRequest().getBody().readUtf8()).at("/ascReqData/medComponents/1");
+        JsonNode updated = JSON.readTree(takeRequest().getBody().readUtf8()).at("/ascReqData/medComponents/1");
+        for (JsonNode component : List.of(created, updated)) {
+            assertThat(component.get("qosReference").asString()).isEqualTo("QOS_5");
+            assertThat(component.has("marBwDl")).isFalse();
+            assertThat(component.has("marBwUl")).isFalse();
+            assertThat(component.has("mirBwDl")).isFalse();
+            assertThat(component.has("mirBwUl")).isFalse();
+            // ARP and the flows still go
+            assertThat(component.get("resPrio").asString()).isEqualTo("PRIO_13");
+            assertThat(component.at("/medSubComps/0/fDescs")).hasSize(2);
+        }
+    }
+
+    @Test
+    void anOperatorSpecificFiveQiListedAsGbrSendsItsBitRates() throws Exception {
+        pcfServer.enqueue(created("/app-sessions/1"));
+        PcfPolicyAuthorizationClient listing130 = client(URI.create(pcfServer.url("/npcf-policyauthorization/v1")
+                .toString()), new GbrFiveQis(List.of(130)));
+
+        listing130.createAppSession("as1", "s1", subscription(), profile().fiveQi(130));
+
+        JsonNode component = JSON.readTree(takeRequest().getBody().readUtf8()).at("/ascReqData/medComponents/1");
+        assertThat(component.get("marBwDl").asString()).isEqualTo("10 Mbps");
+        assertThat(component.get("mirBwUl").asString()).isEqualTo("1 Mbps");
     }
 
     @Test
